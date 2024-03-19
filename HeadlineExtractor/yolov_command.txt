@@ -1,0 +1,2 @@
+python detect.py --weights ./runs/train/results/weights/best.pt --img 416 --conf 0.5 --source ../sbs.mp4
+python detect.py --weights ./runs/train/results/weights/best.pt --img 416 --conf 0.5 --source ../testsave/test1.jpg
