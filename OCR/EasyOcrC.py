@@ -1,12 +1,28 @@
 import os
-import easyocr
+os.environ['KMP_DUPLICATE_LIB_OK']='True'   
 from PIL import Image
 import re
 import numpy as np
 from natsort import natsort_keygen , natsorted
+import cv2
 
+import easyocr
 
+def draw_bbox(image, bbox, image_name, output_dir, color=(0, 255, 0), thickness=5):
+    # bbox는 ((x1, y1), (x2, y2), (x3, y3), (x4, y4)) 형식으로 주어진다고 가정합니다.
+    pts = np.array(bbox, np.int32)
+    pts = pts.reshape((-1, 1, 2))
+    cv2.polylines(image, [pts], isClosed=True, color=color, thickness=thickness)
 
+    # 이미지를 출력 디렉토리에 저장합니다.
+    output_path = os.path.join(output_dir, f"{image_name}_bbox.png")
+    cv2.imwrite(output_path, image)
+
+    # 출력 디렉토리에 저장된 파일들 중 이미지 파일이 아닌 것들은 삭제합니다.
+    for file in os.listdir(output_dir):
+        file_path = os.path.join(output_dir, file)
+        if os.path.isfile(file_path) and not file.lower().endswith(('.png', '.jpg', '.jpeg')):
+            os.remove(file_path)
 
 def contains_chinese_or_english(text):
     for char in text:
@@ -42,7 +58,7 @@ def is_chinese(char):
 
 def remove_special_characters(text):
     # 제거할 특수 문자 패턴 정의
-    pattern = r'[\'"()_\\\/<>;|=:]'
+    pattern = r'[\'"\[\]()_\\\/<>;|=:]'
     # 정규 표현식을 사용하여 특수 문자 제거
     clean_text = re.sub(pattern, '', text)
     return clean_text
@@ -52,9 +68,25 @@ def remove_special_characters(text):
 def main() :
     sentence_list  = ""
 
-    # 이미지 디렉토리 경로
-    image_dir = "../CRAFT/output_segmentation"
-    pth_dir = "./ocr_model"
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+
+    # 상대 경로를 사용하여 절대 경로를 생성합니다.
+    image_dir = os.path.join(script_dir, "../chi")
+    output_dir = os.path.join(script_dir, "./output")
+    pth_dir = os.path.join(script_dir, "./ocr_model")
+    
+    
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    
+    for filename in os.listdir(output_dir):
+        file_path = os.path.join(output_dir, filename)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+        except Exception as e:
+            print(e)
 
     reader = easyocr.Reader(['ch_tra', 'en'], gpu=True, model_storage_directory=pth_dir)
     after_reader = easyocr.Reader(['ko', 'en'], gpu=True, model_storage_directory=pth_dir)
@@ -92,6 +124,9 @@ def main() :
             hanja_list = set("色女官重氏郡田非情證免愛道酒對下農名市企軍父代京辰不宋與佛香訟獨龍多印協飛冬陰號全新藥現公性弗太巨史黨盧朴母靑訴足前警株發天北視强順稅文半正韓高上檢明尹脫銀男濠産家賞苦災客行山二加可建年百過價作先月神兆丁有英訪車子硏才戰親來比野法心無南士李社美字亞手倍國中事日豊週大金曰故外弱式伊內淸質場甲說反癌誌")
 
             for detection in result:
+                
+                draw_bbox(img_np, detection[0], os.path.splitext(image_file)[0], output_dir)  # bbox를 이미지에 그리고 저장합니다.
+
                 print(f"1단계 {detection[1]}  ({detection[2]:.2f})")
                 if  detection[2]> 0.7  :
                 # 한글자이면서 한자이며 점수가 0.7 이상이고 해당 한자가 리스트에 있는 경우
@@ -118,6 +153,7 @@ def main() :
                         
         sentence = remove_special_characters(sentence)
         sentence_list += sentence
+        # sentence_list = remove_special_characters(sentence_list)
             
             # save_to_text_file(sentence_list, "OCRresult.txt")
 

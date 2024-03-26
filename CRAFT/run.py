@@ -401,9 +401,11 @@ def Save_segmentation_image(output_segmentation_path):
                 image_height, image_width, _ = word_image.shape
 
                 if image_width > 50 and image_height > 50:
+
                     # 결과 이미지 저장
                     result_filename = os.path.join(output_segmentation_path, f"word_{k}_{i}.jpg")
                     cv2.imwrite(result_filename, word_image)    
+
         
         
     print("elapsed time : {}s".format(time.time() - t))
@@ -447,7 +449,7 @@ if __name__ == '__main__':
     
     image_list, _, _ = file_utils.get_files(args.test_folder)
     output_visualization_path = './output_visualization/'
-    output_segmentation_path = './output_segmentation/'
+    output_segmentation_path = './output_segmentation1/'
 
     for folder in [output_visualization_path, output_segmentation_path]:
         os.makedirs(folder, exist_ok=True)
